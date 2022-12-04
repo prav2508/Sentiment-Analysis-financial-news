@@ -3,7 +3,7 @@ import util as utl
 # from views import home,about,analysis,options,configuration
 from views import home, analysis, trynow
 
-st.set_page_config(layout="wide", page_title='Navbar sample')
+st.set_page_config(layout="wide", page_title='Sentiment Analysis')
 st.set_option('deprecation.showPyplotGlobalUse', False)
 utl.inject_custom_css()
 utl.navbar_component()
