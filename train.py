@@ -18,6 +18,13 @@ from bs4 import BeautifulSoup
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Embedding
 import pickle
+from nltk.metrics.distance import jaccard_distance
+from nltk.util import ngrams
+nltk.download('words')
+from nltk.corpus import words
+from textblob import TextBlob
+from keras import optimizers
+correct_words = words.words()
 
 def cleanText(text):
     text = BeautifulSoup(text, "lxml").text
@@ -26,6 +33,12 @@ def cleanText(text):
     text = text.lower()
     text = text.replace('x', '')
     return text
+
+def correctSpelling(sent):
+    gfg = TextBlob(sent)
+
+    gfg = gfg.correct()
+    return gfg
 
 def tokenize_text(text):
     tokens = []
@@ -37,20 +50,7 @@ def tokenize_text(text):
             tokens.append(word.lower())
     return tokens
 
-def getModel():
-    # init layer
-    model = Sequential()
 
-    # emmbed word vectors
-    model.add(Embedding(len(d2v_model.wv)+1,20,input_length=X.shape[1],weights=[embedding_matrix],trainable=True))
-
-    #hidden layer   
-    model.add(LSTM(50,return_sequences=False))
-    model.add(Dense(3,activation="softmax"))
-
-    # output model skeleton
-    model.summary()
-    model.compile(optimizer="adam",loss="binary_crossentropy",metrics=['acc'])
 
 def split_input(sequence):
     return sequence[:-1], tf.reshape(sequence[1:], (-1,1))
@@ -70,6 +70,8 @@ df.sentiment = [sentiment[item] for item in df.sentiment]
 
 
 df['Message'] = df['Message'].apply(cleanText)
+# df['Message'] = [ correctSpelling(sent) for sent in df['Message']]
+# print("Spell correction completed!!")
 
 train, test = train_test_split(df, test_size=0.000001 , random_state=42)
 
@@ -87,10 +89,10 @@ MAX_SEQUENCE_LENGTH = 50
 #tokenizer = Tokenizer(num_words=max_fatures, split=' ')
 tokenizer = Tokenizer(num_words=max_fatures, split=' ', filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
 tokenizer.fit_on_texts(df['Message'].values)
-X = tokenizer.texts_to_sequences(df['Message'].values)
-X = pad_sequences(X)
+# X = tokenizer.texts_to_sequences(df['Message'].values)
+# X = pad_sequences(X)
 
-print('Found %s unique tokens.' % len(X))
+# print('Found %s unique tokens.' % len(X))
 
 X = tokenizer.texts_to_sequences(df['Message'].values)
 X = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
@@ -123,9 +125,17 @@ model.add(Embedding(len(d2v_model.wv)+1,20,input_length=X.shape[1],weights=[embe
 model.add(LSTM(50,return_sequences=False))
 model.add(Dense(3,activation="softmax"))
 
+# adam = optimizers.Adam(
+#     learning_rate=0.001,
+#     beta_1=0.9,
+#     beta_2=0.999,
+#     epsilon=1e-07,
+#     amsgrad=False,
+#     name="Adam"
+# )
 # output model skeleton
 model.summary()
-model.compile(optimizer="adam",loss="binary_crossentropy",metrics=['acc'])
+model.compile(optimizer='adam',loss="binary_crossentropy", metrics=['acc'])
 
 Y = pd.get_dummies(df['sentiment']).values
 X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.15, random_state = 42)
@@ -133,7 +143,7 @@ print(X_train.shape,Y_train.shape)
 print(X_test.shape,Y_test.shape)
 
 batch_size = 32
-history=model.fit(X_train, Y_train, epochs =50, batch_size=batch_size, verbose = 2)
+history=model.fit(X_train, Y_train,epochs =120, batch_size=batch_size, verbose = 2)
 
 # evaluate the model
 _, train_acc = model.evaluate(X_train, Y_train, verbose=2)

@@ -28,7 +28,7 @@ def predict(text):
     labels = ['0','1','2']
     return sentiment[int(labels[np.argmax(pred)])]
 
-print(predict("Tesla share goes up"))
+print(predict("Germany stocks higher at close of trade; DAX up 0.27%"))
 
 def updateDashboard():
     return None
