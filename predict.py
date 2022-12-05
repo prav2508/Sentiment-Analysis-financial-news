@@ -41,16 +41,11 @@ def predict(text):
     return sentiment[int(labels[np.argmax(pred)])]
 
 def preProcessText(text):
-    text = BeautifulSoup(text, "lxml").text
+    # text = BeautifulSoup(text, "lxml").text
     text = re.sub(r'\|\|\|', r' ', text) 
     text = re.sub(r'http\S+', r'<URL>', text)
     text = text.lower()
     text = text.replace('x', '')
-    text = text.lower()
-    word_tokens = word_tokenize(text)
-    filtered_sentence = [w for w in word_tokens if not w.lower() in stop_words]
-    text = ' '.join(map(str,filtered_sentence))
-    print(text)
     return text
 
 # print(predict("Software as a Service Market Technologies and Global Markets Report 2022: Focus on Business Intelligence & Analytics, CRM, Content Management, ERP, Finance & Accounting, HRM, Supply Chain Management - ResearchAndMarkets.com"))
