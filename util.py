@@ -4,7 +4,7 @@ from streamlit.components.v1 import html
 
 NAVBAR_PATHS = {
     'HOME':'home',
-    'ANALYSIS': 'analysis',
+    # 'ANALYSIS': 'analysis',
     'TRY NOW': 'trynow',
 }
 
@@ -44,7 +44,7 @@ def navbar_component():
         
             <div class="d-flex">
                 <div class="d-inline-block"> 
-                    <h2>Dashboard</h2>
+                    <h2>Financial News Sentiment Analysis</h2>
                 </div>
                 <div class="d-inline-block">
                     <ul class="navlist">

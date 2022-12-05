@@ -12,8 +12,8 @@ def navigation():
     route = utl.get_current_route()
     if route == "home":
         home.load_view()
-    elif route == "analysis":
-        analysis.load_view()
+    # elif route == "analysis":
+    #     analysis.load_view()
     elif route == "trynow":
         trynow.load_view()
     
