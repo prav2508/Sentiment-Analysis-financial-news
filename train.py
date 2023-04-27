@@ -1,3 +1,5 @@
+# Necessary Imports
+
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -13,6 +15,7 @@ from gensim.models.doc2vec import TaggedDocument
 import re
 import nltk
 nltk.download('punkt')
+nltk.download('stopwords')
 import keras as ks
 from bs4 import BeautifulSoup
 from keras.models import Sequential
@@ -21,10 +24,14 @@ import pickle
 from nltk.metrics.distance import jaccard_distance
 from nltk.util import ngrams
 nltk.download('words')
+from nltk.corpus import stopwords
 from nltk.corpus import words
 from textblob import TextBlob
 from keras import optimizers
-correct_words = words.words()
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+# correct_words = words.words()
 
 def cleanText(text):
     text = BeautifulSoup(text, "lxml").text
@@ -34,21 +41,19 @@ def cleanText(text):
     text = text.replace('x', '')
     return text
 
-def correctSpelling(sent):
-    gfg = TextBlob(sent)
-
-    gfg = gfg.correct()
-    return gfg
 
 def tokenize_text(text):
     tokens = []
+    stop_words = set(stopwords.words('english'))
     for sent in nltk.sent_tokenize(text):
         for word in nltk.word_tokenize(sent):
             #if len(word) < 0:
             if len(word) <= 0:
                 continue
             tokens.append(word.lower())
-    return tokens
+
+    filtered_tokens = [word for word in tokens if word.lower() not in stop_words]
+    return filtered_tokens
 
 
 
@@ -70,15 +75,15 @@ df.sentiment = [sentiment[item] for item in df.sentiment]
 
 
 df['Message'] = df['Message'].apply(cleanText)
-# df['Message'] = [ correctSpelling(sent) for sent in df['Message']]
-# print("Spell correction completed!!")
 
 train, test = train_test_split(df, test_size=0.000001 , random_state=42)
+
 
 train_tagged = train.apply(
     lambda r: TaggedDocument(words=tokenize_text(r['Message']), tags=[r.sentiment]), axis=1)
 test_tagged = test.apply(
     lambda r: TaggedDocument(words=tokenize_text(r['Message']), tags=[r.sentiment]), axis=1)
+
 
 # The maximum number of words to be used. (most frequent)
 max_fatures = 500000
@@ -86,13 +91,9 @@ max_fatures = 500000
 # Max number of words for each.
 MAX_SEQUENCE_LENGTH = 50
 
-#tokenizer = Tokenizer(num_words=max_fatures, split=' ')
+
 tokenizer = Tokenizer(num_words=max_fatures, split=' ', filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
 tokenizer.fit_on_texts(df['Message'].values)
-# X = tokenizer.texts_to_sequences(df['Message'].values)
-# X = pad_sequences(X)
-
-# print('Found %s unique tokens.' % len(X))
 
 X = tokenizer.texts_to_sequences(df['Message'].values)
 X = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
@@ -125,46 +126,60 @@ model.add(Embedding(len(d2v_model.wv)+1,20,input_length=X.shape[1],weights=[embe
 model.add(LSTM(50,return_sequences=False))
 model.add(Dense(3,activation="softmax"))
 
-# adam = optimizers.Adam(
-#     learning_rate=0.001,
-#     beta_1=0.9,
-#     beta_2=0.999,
-#     epsilon=1e-07,
-#     amsgrad=False,
-#     name="Adam"
-# )
+
 # output model skeleton
 model.summary()
-model.compile(optimizer='adam',loss="binary_crossentropy", metrics=['acc'])
+model.compile(optimizer='adam',loss="binary_crossentropy", metrics=['accuracy'])
 
 Y = pd.get_dummies(df['sentiment']).values
-X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.15, random_state = 42)
-print(X_train.shape,Y_train.shape)
-print(X_test.shape,Y_test.shape)
+X_train_val, X_test, y_train_val, Y_test = train_test_split(X,Y, test_size=0.10, random_state=42)
+X_train, X_val, Y_train, Y_val = train_test_split(X_train_val, y_train_val, test_size=0.02, random_state=42)
+
+print("Training data shape: X_train={},y_train={}".format(X_train.shape,Y_train.shape))
+print("Testing data shape: X_test={},y_test={}".format(X_test.shape,Y_test.shape))
+print("Validation data shape: X_val={},y_val={}".format(X_val.shape,Y_val.shape))
+
 
 batch_size = 32
-history=model.fit(X_train, Y_train,epochs =120, batch_size=batch_size, verbose = 2)
+history=model.fit(X_train, Y_train,epochs = 50, batch_size=batch_size, verbose = 2, validation_data=(X_val,Y_val))
+
+print(history.history)
 
 # evaluate the model
 _, train_acc = model.evaluate(X_train, Y_train, verbose=2)
 _, test_acc = model.evaluate(X_test, Y_test, verbose=2)
 print('Train: %.3f, Test: %.4f' % (train_acc, test_acc))
 
-validation_size = 610
-
-X_validate = X_test[-validation_size:]
-Y_validate = Y_test[-validation_size:]
-X_test = X_test[:-validation_size]
-Y_test = Y_test[:-validation_size]
 score,acc = model.evaluate(X_test, Y_test, verbose = 1, batch_size = batch_size)
 
-print("score: %.2f" % (score))
-print("acc: %.2f" % (acc))
+print("Test data score: %.2f" % (score))
+print("Test data accuracy: %.2f" % (acc))
 
 model.save('./financial_Pred_Model.h5',save_format='h5')
 with open('tokenizer.pickle', 'wb') as handle:
     pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 np.save('tensor.npy',X)
+
+# plot training and validation loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper right')
+plt.savefig('loss.png')
+plt.show()
+
+
+# plot training and validation accuracy
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper right')
+plt.savefig('accuracy.png')
+plt.show()
 
 print("End of training script!!")
