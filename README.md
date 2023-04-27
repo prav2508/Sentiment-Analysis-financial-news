@@ -13,5 +13,5 @@
 - Step 4: Run the Simulation
     `python train.py`
 
-## AI Stock Trading Signals
-![Alt text](accuracy.png?raw=true)
+## Model Accuracy
+![Alt text](dashboard_screenshot.png?raw=true)
