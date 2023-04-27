@@ -13,5 +13,5 @@
 - Step 4: Run the Simulation
     `python train.py`
 
-## Model Accuracy
+## Streamlit Dashboard
 ![Alt text](dashboard_screenshot.png?raw=true)
