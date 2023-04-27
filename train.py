@@ -31,8 +31,6 @@ from keras import optimizers
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-# correct_words = words.words()
-
 def cleanText(text):
     text = BeautifulSoup(text, "lxml").text
     text = re.sub(r'\|\|\|', r' ', text) 
@@ -66,18 +64,17 @@ df.head()
 df = df.rename(columns={0:'sentiment',1:'Message'})
 df.info()
 
+#To add indexing and word count 
 df.index = range(4846)
 df['Message'].apply(lambda x: len(x.split(' '))).sum()
 
 sentiment  = {'positive': 0,'neutral': 1,'negative':2} 
-
 df.sentiment = [sentiment[item] for item in df.sentiment] 
 
 
 df['Message'] = df['Message'].apply(cleanText)
 
 train, test = train_test_split(df, test_size=0.000001 , random_state=42)
-
 
 train_tagged = train.apply(
     lambda r: TaggedDocument(words=tokenize_text(r['Message']), tags=[r.sentiment]), axis=1)
@@ -86,13 +83,13 @@ test_tagged = test.apply(
 
 
 # The maximum number of words to be used. (most frequent)
-max_fatures = 500000
+max_features = 500000 
 
 # Max number of words for each.
 MAX_SEQUENCE_LENGTH = 50
 
 
-tokenizer = Tokenizer(num_words=max_fatures, split=' ', filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+tokenizer = Tokenizer(num_words=max_features, split=' ', filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
 tokenizer.fit_on_texts(df['Message'].values)
 
 X = tokenizer.texts_to_sequences(df['Message'].values)
